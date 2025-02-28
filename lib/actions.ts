@@ -1,8 +1,8 @@
 "use server"
 
 import type { CreatePostData, Post, PaginatedPosts, UserVotes } from "./types"
-import { v4 as uuidv4 } from "uuid"
 import { cookies } from "next/headers"
+import { v4 as uuidv4 } from "uuid"
 import { prisma } from "./db"
 
 export async function getPosts(sortBy: "date" | "votes" = "date", page = 1, perPage = 20): Promise<PaginatedPosts> {
@@ -48,13 +48,13 @@ export async function votePost(postId: string, voteType: "up" | "down"): Promise
 
   if (existingVote) {
     if (existingVote.type === voteType) {
-      // Remove o voto se o usuário está votando da mesma forma novamente
+      // Remove the vote if the user is voting the same way again
       await prisma.vote.delete({
         where: { id: existingVote.id },
       })
       return updatePostVotes(postId, voteType === "up" ? -1 : 1)
     } else {
-      // Muda o voto se o usuário está votando de forma diferente
+      // Change the vote if the user is voting differently
       await prisma.vote.update({
         where: { id: existingVote.id },
         data: { type: voteType },
@@ -62,7 +62,7 @@ export async function votePost(postId: string, voteType: "up" | "down"): Promise
       return updatePostVotes(postId, voteType === "up" ? 2 : -2)
     }
   } else {
-    // Cria um novo voto
+    // Create a new vote
     await prisma.vote.create({
       data: {
         type: voteType,
@@ -75,6 +75,7 @@ export async function votePost(postId: string, voteType: "up" | "down"): Promise
 }
 
 async function updatePostVotes(postId: string, change: number): Promise<Post> {
+  // Update the post's vote count
   return prisma.post.update({
     where: { id: postId },
     data: { votes: { increment: change } },
@@ -83,6 +84,7 @@ async function updatePostVotes(postId: string, change: number): Promise<Post> {
 
 export async function getUserVotes(): Promise<UserVotes> {
   const userId = await getUserId()
+  // Fetch the user's votes
   const votes = await prisma.vote.findMany({
     where: { userId: userId },
     select: { postId: true, type: true },
@@ -95,6 +97,7 @@ export async function getUserVotes(): Promise<UserVotes> {
 }
 
 async function getUserId(): Promise<string> {
+  // Get or create a user ID cookie
   const cookieStore = cookies()
   let userId = cookieStore.get("userId")?.value
 
@@ -112,6 +115,7 @@ async function getUserId(): Promise<string> {
 }
 
 export async function setCookie(name: string, value: string) {
+  // Set a cookie with the given name and value
   cookies().set(name, value, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -119,4 +123,3 @@ export async function setCookie(name: string, value: string) {
     maxAge: 60 * 60 * 24 * 365, // 1 year
   })
 }
-
